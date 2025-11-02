@@ -1,0 +1,126 @@
+groups:
+  - name: system_resources
+    interval: 30s
+    rules:
+      - alert: HostDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "🔴 Host DOWN"
+          description: "Host {{ $labels.instance }} is unreachable for 1+ minute"
+
+      - alert: HighCPU
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "⚠️ High CPU Usage"
+          description: "CPU usage {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: CriticalCPU
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "🔴 CRITICAL CPU Usage"
+          description: "CPU usage {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: HighMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "⚠️ High Memory Usage"
+          description: "Memory usage {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: CriticalMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "🔴 CRITICAL Memory Usage"
+          description: "Memory usage {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 20
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "⚠️ Low Disk Space"
+          description: "Only {{ $value | humanizePercentage }} free space on {{ $labels.instance }}"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 1m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "🔴 CRITICAL Disk Space"
+          description: "Only {{ $value | humanizePercentage }} free space on {{ $labels.instance }}"
+
+  - name: critical_services
+    interval: 30s
+    rules:
+      - alert: HAProxyDown
+        expr: up{job="haproxy"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: services
+        annotations:
+          summary: "🔴 HAProxy DOWN"
+          description: "HAProxy service is unreachable"
+
+      - alert: HAProxyBackendDown
+        expr: haproxy_server_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: services
+        annotations:
+          summary: "🔴 HAProxy Backend DOWN"
+          description: "Backend {{ $labels.proxy }}/{{ $labels.server }} is down"
+
+      - alert: XrayDown
+        expr: up{job="xray"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: services
+        annotations:
+          summary: "🔴 Xray VPN DOWN"
+          description: "Xray service is unreachable for 2+ minutes"
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: monitoring
+        annotations:
+          summary: "⚠️ Prometheus DOWN"
+          description: "Prometheus monitoring is down"
+
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          category: monitoring
+        annotations:
+          summary: "⚠️ Grafana DOWN"
+          description: "Grafana dashboard is unreachable"

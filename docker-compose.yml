@@ -1,0 +1,216 @@
+networks:
+  monitoring_network:
+    external: true
+  haproxy_proxy_network:
+    external: true
+  wireguard_wg-network:
+    external: true
+
+# Volumes are now using bind mounts in ./data directory
+# volumes:
+#   prometheus_data:
+#   grafana_data:
+#   loki_data:
+
+services:
+  # Prometheus - сбор метрик
+  prometheus:
+    image: prom/prometheus:v3.7.1
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+#      - '--web.external-url=http://84.21.191.54:8444/prometheus/'
+#      - '--web.route-prefix=/'
+    volumes:
+      - ./prometheus/config:/etc/prometheus
+      - ./prometheus/rules:/etc/prometheus/rules
+      - ./data/prometheus:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Node Exporter - метрики хоста
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: node-exporter
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # cAdvisor - метрики контейнеров
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "9200:8080"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Loki - хранение логов
+  loki:
+    image: grafana/loki:3.5.7
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/config:/etc/loki
+      - ./data/loki:/loki
+      - ./loki/rules:/loki/rules
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Promtail - агент сбора логов
+  promtail:
+    image: grafana/promtail:3.5.7
+    container_name: promtail
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail/config:/etc/promtail
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Grafana - визуализация
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_ROOT_URL=http://localhost:3200
+      - GF_SERVER_HTTP_PORT=3200
+      - GF_INSTALL_PLUGINS=redis-datasource
+      - GF_METRICS_ENABLED=true
+      - GF_UNIFIED_ALERTING_ENABLED=true
+      - GF_ALERTING_ENABLED=false
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3200:3200"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Alertmanager - управление алертами
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ./alertmanager/config:/etc/alertmanager
+      - ./alertmanager/data:/alertmanager
+    ports:
+      - "9093:9093"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Alertmanager Telegram Bot
+  alertmanager-telegram:
+    image: metalmatze/alertmanager-bot:0.4.3
+    container_name: alertmanager-telegram
+    environment:
+      - TELEGRAM_ADMIN=1228274277
+      - TELEGRAM_TOKEN=7922819297:AAE5rmxbpa83bmU7sUZAhsAfgHg3zJdpRns
+      - ALERTMANAGER_URL=http://alertmanager:9093
+      - STORE=bolt
+      - BOLT_PATH=/data/bot.db
+      - LISTEN_ADDR=0.0.0.0:8080
+    volumes:
+      - ./alertmanager/telegram-data:/data
+    ports:
+      - "9094:8080"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+  # Blackbox Exporter - мониторинг доступности
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: blackbox-exporter
+    command:
+      - '--config.file=/etc/blackbox/blackbox.yml'
+    volumes:
+      - ./blackbox-exporter/config:/etc/blackbox
+    ports:
+      - "9115:9115"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+
+#  # WireGuard Exporter
+#  wireguard-exporter:
+#    image: mindflavor/prometheus-wireguard-exporter:3.6.6
+#    container_name: wireguard-exporter
+#    command:
+#      - -i
+#      - wg0
+#    volumes:
+#      - /var/run/wireguard:/var/run/wireguard:ro
+#     - ~/wireguard/config:/etc/wireguard:ro
+#    ports:
+#      - "9586:9586"
+#    restart: unless-stopped
+#    networks:
+#      - wireguard_wg-network
+#      - monitoring_network
+#    cap_add:
+#      - NET_ADMIN
+
+  # HAProxy Exporter
+  haproxy-exporter:
+    image: quay.io/prometheus/haproxy-exporter:v0.15.0
+    container_name: haproxy-exporter
+    command:
+      - --haproxy.scrape-uri=http://haproxy:8404/stats;csv
+    ports:
+      - "9101:9101"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+      - haproxy_proxy_network
+
+  # Xray Exporter
+  xray-exporter:
+    build: ./xray-exporter
+    container_name: xray-exporter
+    ports:
+      - "9550:9550"
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+      - haproxy_proxy_network

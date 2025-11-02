@@ -1,0 +1,102 @@
+groups:
+  - name: security_alerts
+    interval: 30s
+    rules:
+      - alert: SSHBruteForce
+        expr: |
+          sum(count_over_time({job="security"} |~ `(?i)failed password|authentication failure` [5m])) > 20
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "🔴 SSH Brute Force Attack"
+          description: "Detected {{ $value }} failed SSH login attempts in 5 minutes"
+
+      - alert: XrayBruteForce
+        expr: |
+          sum(rate({container="xray", action="rejected"}[1m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "⚠️ Xray Connection Rejected Spike"
+          description: "High rate of rejected Xray connections: {{ $value }}/s"
+
+      - alert: XrayCriticalRejections
+        expr: |
+          sum(rate({container="xray", action="rejected"}[1m])) > 50
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "🔴 CRITICAL Xray Rejections"
+          description: "Very high rate of rejected connections: {{ $value }}/s - possible attack"
+
+      - alert: WebScanning
+        expr: |
+          sum by (remote_addr) (rate({container="bot-webapp-nginx", status=~"4.."} [5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "⚠️ Web Scanning Detected"
+          description: "High 4xx error rate from IP - possible scanning"
+
+      - alert: WebAttack
+        expr: |
+          sum(rate({container="bot-webapp-nginx", status=~"4.."} [1m])) > 50
+        for: 2m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "🔴 Possible Web Attack"
+          description: "Very high 4xx error rate: {{ $value }}/s"
+
+      - alert: Fail2BanActive
+        expr: |
+          sum(count_over_time({job="varlogs", filename="/var/log/fail2ban.log"} |= "Ban" [5m])) > 3
+        for: 1m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "⚠️ Fail2Ban Activated"
+          description: "Fail2Ban has banned {{ $value }} IPs in last 5 minutes"
+
+      - alert: KernelPanic
+        expr: |
+          sum(count_over_time({job="system_critical"} |~ `(?i)kernel panic|oops` [1m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "🔴 Kernel Panic Detected"
+          description: "Critical kernel error detected in system logs"
+
+      - alert: OOMKiller
+        expr: |
+          sum(count_over_time({job="system_critical"} |= "Out of memory" [5m])) > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "🔴 OOM Killer Activated"
+          description: "System killed processes due to memory exhaustion"
+
+      - alert: HAProxyErrors
+        expr: |
+          sum(count_over_time({container="haproxy"} |~ `(?i)error|fail` [5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "⚠️ HAProxy Errors Detected"
+          description: "{{ $value }} errors in HAProxy logs in last 5 minutes"

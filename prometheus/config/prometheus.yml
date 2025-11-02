@@ -1,0 +1,89 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'learning-stack'
+    environment: 'dev'
+
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # Prometheus самомониторинг
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - метрики хоста
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'learning-host'
+          service: 'node-exporter'
+
+  # cAdvisor - метрики контейнеров
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'docker-host'
+          service: 'cadvisor'
+
+  # Grafana метрики
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3200']
+        labels:
+          service: 'grafana'
+    metrics_path: '/metrics'
+
+  # Loki метрики
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          service: 'loki'
+
+  # Alertmanager метрики
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+        labels:
+          service: 'alertmanager'
+
+  # Blackbox Exporter - проверка доступности
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://grafana:3200
+          - http://prometheus:9090
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['haproxy-exporter:9101']
+        labels:
+          service: 'haproxy'
+
+  - job_name: 'xray'
+    static_configs:
+      - targets: ['xray-exporter:9550']
+        labels:
+          service: 'xray'

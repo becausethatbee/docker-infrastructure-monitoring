@@ -1,0 +1,89 @@
+# Данные (хранилища метрик, логов, grafana)
+data/
+*/data/
+prometheus/data/
+grafana/data/
+loki/data/
+loki/wal/
+alertmanager/data/
+
+# Telegram bot database
+alertmanager/telegram-data/
+*.db
+
+# Логи
+*.log
+logs/
+
+# Временные файлы
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+
+# Secrets и credentials (НЕ КОММИТИТЬ!)
+*secret*
+*password*
+*.key
+*.pem
+*.crt
+certificates/
+ACCESS_INFO.md
+
+# Docker volumes
+volumes/
+
+# Backup files
+*.bak
+*.backup
+backup/
+backups/
+
+# OS generated
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Grafana specific
+grafana/data/
+grafana.db
+grafana/png/
+grafana/csv/
+grafana/pdf/
+
+# Prometheus specific
+prometheus/data/
+
+# Loki specific
+loki/chunks/
+loki/boltdb-shipper-*
+loki/compactor/
+loki/tsdb-*
+
+# Alertmanager specific
+alertmanager/data/nflog
+alertmanager/data/silences
+
+# Исключения: Конфиги НУЖНО коммитить
+!prometheus/config/
+!loki/config/
+!promtail/config/
+!alertmanager/config/
+!blackbox-exporter/config/
+!grafana/provisioning/
+
+# Но не коммитить secrets в конфигах (добавьте конкретные файлы если нужно)

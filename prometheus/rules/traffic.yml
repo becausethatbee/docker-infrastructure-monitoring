@@ -1,0 +1,151 @@
+groups:
+  - name: network_traffic
+    interval: 30s
+    rules:
+      - alert: HighNetworkTrafficIn
+        expr: rate(node_network_receive_bytes_total{device!="lo"}[5m]) > 100000000
+        for: 3m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High Inbound Network Traffic"
+          description: "Receiving {{ $value | humanize }}B/s on {{ $labels.device }} - possible DDoS or data exfiltration"
+
+      - alert: HighNetworkTrafficOut
+        expr: rate(node_network_transmit_bytes_total{device!="lo"}[5m]) > 100000000
+        for: 3m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High Outbound Network Traffic"
+          description: "Transmitting {{ $value | humanize }}B/s on {{ $labels.device }}"
+
+      - alert: NetworkTrafficSpike
+        expr: |
+          (rate(node_network_receive_bytes_total{device!="lo"}[1m]) / 
+          avg_over_time(rate(node_network_receive_bytes_total{device!="lo"}[5m])[1h:5m])) > 5
+        for: 2m
+        labels:
+          severity: critical
+          category: traffic
+        annotations:
+          summary: "🔴 Network Traffic Spike Detected"
+          description: "Traffic is 5x higher than baseline on {{ $labels.device }}"
+
+  - name: haproxy_traffic
+    interval: 30s
+    rules:
+      - alert: HAProxyHighRequestRate
+        expr: sum(rate(haproxy_backend_http_requests_total[5m])) > 500
+        for: 3m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High HAProxy Request Rate"
+          description: "Handling {{ $value | humanize }} req/s - possible attack or traffic spike"
+
+      - alert: HAProxyCriticalRequestRate
+        expr: sum(rate(haproxy_backend_http_requests_total[1m])) > 1000
+        for: 1m
+        labels:
+          severity: critical
+          category: traffic
+        annotations:
+          summary: "🔴 CRITICAL HAProxy Request Rate"
+          description: "Handling {{ $value | humanize }} req/s - likely DDoS attack"
+
+      - alert: HAProxyRequestSpike
+        expr: |
+          sum(rate(haproxy_backend_http_requests_total[1m])) / 
+          avg_over_time(sum(rate(haproxy_backend_http_requests_total[5m]))[1h:5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          category: traffic
+        annotations:
+          summary: "🔴 HAProxy Request Spike"
+          description: "Request rate is 10x higher than baseline"
+
+      - alert: HAProxyHighErrorRate
+        expr: |
+          sum(rate(haproxy_server_http_responses_total{code="5xx"}[5m])) / 
+          sum(rate(haproxy_server_http_responses_total[5m])) * 100 > 5
+        for: 3m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High HAProxy Error Rate"
+          description: "{{ $value | humanizePercentage }} of requests return 5xx errors"
+
+      - alert: HAProxySlowResponses
+        expr: haproxy_server_response_time_average_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ Slow HAProxy Responses"
+          description: "Average response time {{ $value }}s on {{ $labels.proxy }}/{{ $labels.server }}"
+
+  - name: wireguard_traffic
+    interval: 30s
+    rules:
+      - alert: WireGuardHighTraffic
+        expr: rate(wireguard_received_bytes_total[5m]) > 50000000
+        for: 5m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High WireGuard Traffic"
+          description: "Receiving {{ $value | humanize }}B/s on peer {{ $labels.public_key }} - unusual activity"
+
+      - alert: WireGuardPeerInactive
+        expr: (time() - wireguard_latest_handshake_seconds) > 300
+        for: 5m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ WireGuard Peer Inactive"
+          description: "Peer {{ $labels.public_key }} last handshake {{ $value | humanizeDuration }} ago"
+
+      - alert: WireGuardAllPeersDown
+        expr: count(wireguard_latest_handshake_seconds != 0) == 0
+        for: 3m
+        labels:
+          severity: critical
+          category: traffic
+        annotations:
+          summary: "🔴 All WireGuard Peers Disconnected"
+          description: "No active WireGuard peers detected"
+
+  - name: xray_traffic
+    interval: 30s
+    rules:
+      - alert: XrayHighConnectionRate
+        expr: |
+          sum(rate({container="xray", action="accepted"}[5m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High Xray Connection Rate"
+          description: "{{ $value | humanize }} connections/s - unusual activity"
+
+      - alert: XrayRejectionRateHigh
+        expr: |
+          sum(rate({container="xray", action="rejected"}[5m])) / 
+          sum(rate({container="xray"}[5m])) * 100 > 20
+        for: 5m
+        labels:
+          severity: warning
+          category: traffic
+        annotations:
+          summary: "⚠️ High Xray Rejection Rate"
+          description: "{{ $value | humanizePercentage }} of connections rejected"

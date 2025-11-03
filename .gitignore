@@ -6,6 +6,7 @@ grafana/data/
 loki/data/
 loki/wal/
 alertmanager/data/
+xray-exporter/
 
 # Telegram bot database
 alertmanager/telegram-data/
@@ -57,6 +58,7 @@ backups/
 Thumbs.db
 .Spotlight-V100
 .Trashes
+.claude
 
 # Grafana specific
 grafana/data/

@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker network ls)",
+      "Bash(docker network inspect bridge go-proxy_default haproxy_proxy_network llmhub_app-network llmhub_llmhub-net monitoring_network openhands_openhands_network telegram-ai-bot_default wireguard_wg-network --format '{{.Name}}: {{range .Containers}}{{.Name}} {{end}}')",
+      "Bash(docker stop openhands)",
+      "Bash(docker network disconnect haproxy_proxy_network openhands)",
+      "Bash(docker network rm go-proxy_default llmhub_app-network openhands_openhands_network)",
+      "Bash(docker volume ls)",
+      "Bash(docker volume inspect monitoring-stack_grafana_data monitoring-stack_loki_data monitoring-stack_prometheus_data monitoring-stack_rabbitmq_data --format 'Volume: {{.Name}}\\nMountpoint: {{.Mountpoint}}\\n')",
+      "Bash(docker volume ls -qf dangling=true)",
+      "Bash(docker ps -a --format 'table {{.Names}}\\t{{.Mounts}}')",
+      "Bash(docker network inspect monitoring-stack_monitoring monitoring_network --format '{{.Name}}: {{range .Containers}}{{.Name}} {{end}}')",
+      "Bash(docker network connect monitoring_network alertmanager-telegram)",
+      "Bash(docker network connect monitoring_network alertmanager)",
+      "Bash(docker network connect monitoring_network grafana)",
+      "Bash(docker network connect monitoring_network cadvisor)",
+      "Bash(docker network connect monitoring_network rabbitmq)",
+      "Bash(docker network connect monitoring_network loki)",
+      "Bash(docker network connect monitoring_network prometheus)",
+      "Bash(docker network connect monitoring_network node-exporter)",
+      "Bash(docker network connect monitoring_network promtail)",
+      "Bash(docker network connect monitoring_network blackbox-exporter)",
+      "Bash(docker network disconnect monitoring-stack_monitoring alertmanager-telegram)",
+      "Bash(docker network disconnect monitoring-stack_monitoring alertmanager)",
+      "Bash(docker network disconnect monitoring-stack_monitoring grafana)",
+      "Bash(docker network disconnect monitoring-stack_monitoring cadvisor)",
+      "Bash(docker network disconnect monitoring-stack_monitoring rabbitmq)",
+      "Bash(docker network disconnect monitoring-stack_monitoring loki)",
+      "Bash(docker network disconnect monitoring-stack_monitoring prometheus)",
+      "Bash(docker network disconnect monitoring-stack_monitoring node-exporter)",
+      "Bash(docker network disconnect monitoring-stack_monitoring promtail)",
+      "Bash(docker network disconnect monitoring-stack_monitoring blackbox-exporter)",
+      "Bash(docker ps --filter \"name=alertmanager-telegram|alertmanager|grafana|cadvisor|rabbitmq|loki|prometheus|node-exporter|promtail|blackbox-exporter\" --format \"table {{.Names}}\\t{{.Status}}\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

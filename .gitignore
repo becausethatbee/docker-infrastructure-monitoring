@@ -7,6 +7,8 @@ loki/data/
 loki/wal/
 alertmanager/data/
 xray-exporter/
+*.claude/
+./claude/
 
 # Telegram bot database
 alertmanager/telegram-data/
@@ -58,7 +60,7 @@ backups/
 Thumbs.db
 .Spotlight-V100
 .Trashes
-.claude
+.claude/
 
 # Grafana specific
 grafana/data/
@@ -80,7 +82,7 @@ loki/tsdb-*
 alertmanager/data/nflog
 alertmanager/data/silences
 
-# Исключения: Конфиги НУЖНО коммитить
+# Исключения: 
 !prometheus/config/
 !loki/config/
 !promtail/config/
@@ -88,4 +90,4 @@ alertmanager/data/silences
 !blackbox-exporter/config/
 !grafana/provisioning/
 
-# Но не коммитить secrets в конфигах (добавьте конкретные файлы если нужно)
+

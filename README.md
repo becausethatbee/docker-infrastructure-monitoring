@@ -276,7 +276,7 @@ MIT License
 
 ## Автор
 
-Ivan - DevOps Engineer
+becausethatbee
 
 ## Поддержка
 
